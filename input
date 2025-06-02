@@ -1,0 +1,12 @@
+
+#Lambda functions
+f = (\x: bool. eq true x)
+#Lists
+a = [c1,c2,c3]
+head a
+tail a
+isnil a
+#Pairs
+b = pair c1 true
+fst b
+snd b
