@@ -1,53 +1,56 @@
 import Data.Char (chr)
 
 data Ty =
-    TyBool
-    | TyArr Ty Ty
-    | TyPair Ty Ty
-    | TyNat
-    | TyAny
-    | TyList Ty
-    deriving (Show, Eq, Read)
+  TyBool
+  | TyArr Ty Ty
+  | TyPair Ty Ty
+  | TyNat
+  | TyAny
+  | TyList Ty
+  deriving (Show, Eq, Read)
 
 data Term =
-    -- Booleans
+  -- Booleans
     TmTrue
-    | TmFalse
-    | TmZero
-    -- Arithmetic
-    | TmSucc Term
-    | TmPred Term
-    | TmIsZero Term
-    | TmPlus Term Term
-    | TmMul Term Term
-    | TmEq Term Term
-    -- Conditionals
-    | TmIf Term Term Term
-    | TmVar Int
-    | TmLam String Ty Term
-    | TmApp Term Term 
-    -- Logical operators
-    | TmAnd Term Term
-    | TmOr Term Term
-    | TmNot Term
-    -- Pair
-    | TmPair Term Term
-    | TmFst Term
-    | TmSnd Term
-    -- List
-    | TmNil Ty
-    | TmCons Term Term
-    | TmIsNil Term
-    | TmHead Term
-    | TmTail Term
-    deriving (Show, Eq, Read)
+  | TmFalse
+  | TmZero
+  -- Arithmetic
+  | TmSucc Term
+  | TmPred Term
+  | TmIsZero Term
+  | TmPlus Term Term
+  | TmMul Term Term
+  | TmEq Term Term
+  -- Conditionals
+  | TmIf Term Term Term
+  | TmVar Int
+  | TmLam String Ty Term
+  | TmApp Term Term
+  -- Recursion
+  | TmFix Term
+  -- Logical operators
+  | TmAnd Term Term
+  | TmOr Term Term
+  | TmNot Term
+  -- Pair
+  | TmPair Term Term
+  | TmFst Term
+  | TmSnd Term
+  -- List
+  | TmNil Ty
+  | TmCons Term Term
+  | TmIsNil Term
+  | TmHead Term
+  | TmTail Term
+  deriving (Show, Eq, Read)
 
 type Context = [(String, Ty)]
 
+
 typeOf :: Context -> Term -> Either String Ty
-typeOf ctx TmTrue = Right TyBool
+typeOf ctx TmTrue  = Right TyBool
 typeOf ctx TmFalse = Right TyBool
-typeOf ctx TmZero = Right TyNat
+typeOf ctx TmZero  = Right TyNat
 
 typeOf ctx (TmVar x) = getFromContext ctx x
 
@@ -79,28 +82,20 @@ typeOf ctx (TmIf t1 t2 t3) = do
 
 typeOf ctx (TmSucc t1) = do
   tyT1 <- typeOf ctx t1
-  if tyT1 == TyNat
-    then Right TyNat
-    else Left "Argument of succ is not a number"
+  if tyT1 == TyNat then Right TyNat else Left "Argument of succ is not a number"
 
 typeOf ctx (TmPred t1) = do
   tyT1 <- typeOf ctx t1
-  if tyT1 == TyNat
-    then Right TyNat
-    else Left "Argument of pred is not a number"
+  if tyT1 == TyNat then Right TyNat else Left "Argument of pred is not a number"
 
 typeOf ctx (TmIsZero t1) = do
   tyT1 <- typeOf ctx t1
-  if tyT1 == TyNat
-    then Right TyBool
-    else Left "Argument of iszero is not a number"
+  if tyT1 == TyNat then Right TyBool else Left "Argument of iszero is not a number"
 
 typeOf ctx (TmPlus t1 t2) = do
   tyT1 <- typeOf ctx t1
   tyT2 <- typeOf ctx t2
-  if tyT1 == TyNat && tyT2 == TyNat
-    then Right TyNat
-    else Left "Arguments of plus are not numbers"
+  if tyT1 == TyNat && tyT2 == TyNat then Right TyNat else Left "Arguments of plus are not numbers"
 
 typeOf ctx (TmEq t1 t2) = do
   tyT1 <- typeOf ctx t1
@@ -110,31 +105,23 @@ typeOf ctx (TmEq t1 t2) = do
     else Left "Arguments of eq are not numbers or booleans"
 
 typeOf ctx (TmAnd t1 t2) = do
-    tyT1 <- typeOf ctx t1
-    tyT2 <- typeOf ctx t2
-    if tyT1 == TyBool && tyT2 == TyBool
-        then Right TyBool
-        else Left "Arguments of and are not booleans"
+  tyT1 <- typeOf ctx t1
+  tyT2 <- typeOf ctx t2
+  if tyT1 == TyBool && tyT2 == TyBool then Right TyBool else Left "Arguments of and are not booleans"
 
 typeOf ctx (TmOr t1 t2) = do
-    tyT1 <- typeOf ctx t1
-    tyT2 <- typeOf ctx t2
-    if tyT1 == TyBool && tyT2 == TyBool
-        then Right TyBool
-        else Left "Arguments of or are not booleans"
+  tyT1 <- typeOf ctx t1
+  tyT2 <- typeOf ctx t2
+  if tyT1 == TyBool && tyT2 == TyBool then Right TyBool else Left "Arguments of or are not booleans"
 
 typeOf ctx (TmNot t1) = do
-    tyT1 <- typeOf ctx t1
-    if tyT1 == TyBool
-        then Right TyBool
-        else Left "Argument of not is not a boolean"
+  tyT1 <- typeOf ctx t1
+  if tyT1 == TyBool then Right TyBool else Left "Argument of not is not a boolean"
 
 typeOf ctx (TmMul t1 t2) = do
   tyT1 <- typeOf ctx t1
   tyT2 <- typeOf ctx t2
-  if tyT1 == TyNat && tyT2 == TyNat
-    then Right TyNat
-    else Left "Arguments of mul are not numbers"
+  if tyT1 == TyNat && tyT2 == TyNat then Right TyNat else Left "Arguments of mul are not numbers"
 
 typeOf ctx (TmPair t1 t2) = do
   ty1 <- typeOf ctx t1
@@ -180,6 +167,13 @@ typeOf ctx (TmTail t) = do
     TyList tyEl -> Right (TyList tyEl)
     _ -> Left "tail expects a list"
 
+typeOf ctx (TmFix t1) = do
+  ty1 <- typeOf ctx t1
+  case ty1 of
+    TyArr tyA tyB | tyA == tyB -> Right tyA
+    _ -> Left "fix expects an argument of type T->T"
+
+
 convertIndex :: Char -> Int -> [Char] -> Int
 convertIndex c idx [] = idx
 convertIndex c idx (y:ys)
@@ -197,13 +191,12 @@ rebuild acc ctx [x] = acc ++ [x]
 rebuild acc ctx [x, y] = acc ++ [x, y]
 rebuild acc ctx (x:y:z:xs)
   | x == '\\' = rebuild (acc ++ [x]) (ctx ++ [y]) (y:z:xs)
-  | x == ' ' && z `elem` " :)" && y `elem` ctx =
+  | x `elem` " ([," && z `elem` " ,:)]" && y `elem` ctx =
       let position = convertIndex y 0 ctx
           symbol = charFromIndex (length ctx - position - 1)
       in rebuild (acc ++ [x, symbol]) ctx (z:xs)
-  | x == ')' = rebuild (acc ++ [x]) (init ctx) (y:z:xs)
+  | x == ')' = rebuild (acc ++ [x]) (if null ctx then ctx else init ctx) (y:z:xs)
   | otherwise = rebuild (acc ++ [x]) ctx (y:z:xs)
-
 
 addToContext :: Context -> String -> Ty -> Context
 addToContext ctx x ty = (x, ty) : ctx
@@ -212,6 +205,8 @@ getFromContext :: Context -> Int -> Either String Ty
 getFromContext ctx i
     | i < 0 || i >= length ctx = Left $ "Index " ++ show i ++ " out of bounds"
     | otherwise = Right (snd (ctx !! i))
+
+
 
 isVal :: Term -> Bool
 isVal t = case t of
@@ -222,6 +217,7 @@ isVal t = case t of
     TmSucc t1 -> isNumericVal t1
     TmNil _ -> True
     TmCons h t -> isVal h && isVal t
+    TmPair t1 t2 -> isVal t1 && isVal t2
     _ -> False
 
 isNumericVal :: Term -> Bool
@@ -229,60 +225,87 @@ isNumericVal TmZero = True
 isNumericVal (TmSucc t) = isNumericVal t
 isNumericVal _ = False
 
+
+
 shift :: Int -> Term -> Term
 shift d t = f 0 t
-  where f c v@(TmVar x) = if x >= c then TmVar (d + x) else v
-        f c (TmLam name ty t) = TmLam name ty (f (c + 1) t)
-        f c (TmApp t1 t2) = TmApp (f c t1) (f c t2)
-        f c (TmIf t1 t2 t3) = TmIf (f c t1) (f c t2) (f c t3)
-        f c (TmSucc t1) = TmSucc (f c t1)
-        f c (TmPred t1) = TmPred (f c t1)
-        f c (TmIsZero t1) = TmIsZero (f c t1)
-        f c (TmPlus t1 t2) = TmPlus (f c t1) (f c t2)
-        f c (TmMul t1 t2) = TmMul (f c t1) (f c t2)
-        f c (TmEq t1 t2) = TmEq (f c t1) (f c t2)
-        f c (TmAnd t1 t2) = TmAnd (f c t1) (f c t2)
-        f c (TmOr t1 t2) = TmOr (f c t1) (f c t2)
-        f c (TmNot t1) = TmNot (f c t1)
-        f _ t = t
+  where
+    f c (TmVar x)        = if x >= c then TmVar (d + x) else TmVar x
+    f c (TmLam n ty t1)  = TmLam n ty (f (c + 1) t1)
+    f c (TmApp t1 t2)    = TmApp (f c t1) (f c t2)
+    f c (TmIf t1 t2 t3)  = TmIf (f c t1) (f c t2) (f c t3)
+    f c (TmSucc t1)      = TmSucc (f c t1)
+    f c (TmPred t1)      = TmPred (f c t1)
+    f c (TmIsZero t1)    = TmIsZero (f c t1)
+    f c (TmPlus t1 t2)   = TmPlus (f c t1) (f c t2)
+    f c (TmMul t1 t2)    = TmMul (f c t1) (f c t2)
+    f c (TmEq t1 t2)     = TmEq (f c t1) (f c t2)
+    f c (TmAnd t1 t2)    = TmAnd (f c t1) (f c t2)
+    f c (TmOr t1 t2)     = TmOr (f c t1) (f c t2)
+    f c (TmNot t1)       = TmNot (f c t1)
+    f c (TmPair t1 t2)   = TmPair (f c t1) (f c t2)
+    f c (TmFst t1)       = TmFst (f c t1)
+    f c (TmSnd t1)       = TmSnd (f c t1)
+    f c (TmCons h t1)    = TmCons (f c h) (f c t1)
+    f c (TmIsNil t1)     = TmIsNil (f c t1)
+    f c (TmHead t1)      = TmHead (f c t1)
+    f c (TmTail t1)      = TmTail (f c t1)
+    f c (TmFix t1)       = TmFix (f c t1)
+    f _ TmTrue           = TmTrue
+    f _ TmFalse          = TmFalse
+    f _ TmZero           = TmZero
+    f _ (TmNil ty)       = TmNil ty
 
 subst :: Int -> Term -> Term -> Term
 subst j s t = f 0 t
-  where f c v@(TmVar x) = if j + c == x then shift c s else v
-        f c (TmLam name ty t) = TmLam name ty (f (c + 1) t)
-        f c (TmApp t1 t2) = TmApp (f c t1) (f c t2)
-        f c (TmIf t1 t2 t3) = TmIf (f c t1) (f c t2) (f c t3)
-        f c (TmSucc t1) = TmSucc (f c t1)
-        f c (TmPred t1) = TmPred (f c t1)
-        f c (TmIsZero t1) = TmIsZero (f c t1)
-        f c (TmPlus t1 t2) = TmPlus (f c t1) (f c t2)
-        f c (TmMul t1 t2) = TmMul (f c t1) (f c t2)
-        f c (TmEq t1 t2) = TmEq (f c t1) (f c t2)
-        f c (TmAnd t1 t2) = TmAnd (f c t1) (f c t2)
-        f c (TmOr t1 t2) = TmOr (f c t1) (f c t2)
-        f c (TmNot t1) = TmNot (f c t1)
-        f _ t = t
+  where
+    f c (TmVar x)        = if j + c == x then shift c s else TmVar x
+    f c (TmLam n ty t1)  = TmLam n ty (f (c + 1) t1)
+    f c (TmApp t1 t2)    = TmApp (f c t1) (f c t2)
+    f c (TmIf t1 t2 t3)  = TmIf (f c t1) (f c t2) (f c t3)
+    f c (TmSucc t1)      = TmSucc (f c t1)
+    f c (TmPred t1)      = TmPred (f c t1)
+    f c (TmIsZero t1)    = TmIsZero (f c t1)
+    f c (TmPlus t1 t2)   = TmPlus (f c t1) (f c t2)
+    f c (TmMul t1 t2)    = TmMul (f c t1) (f c t2)
+    f c (TmEq t1 t2)     = TmEq (f c t1) (f c t2)
+    f c (TmAnd t1 t2)    = TmAnd (f c t1) (f c t2)
+    f c (TmOr t1 t2)     = TmOr (f c t1) (f c t2)
+    f c (TmNot t1)       = TmNot (f c t1)
+    f c (TmPair t1 t2)   = TmPair (f c t1) (f c t2)
+    f c (TmFst t1)       = TmFst (f c t1)
+    f c (TmSnd t1)       = TmSnd (f c t1)
+    f c (TmCons h t1)    = TmCons (f c h) (f c t1)
+    f c (TmIsNil t1)     = TmIsNil (f c t1)
+    f c (TmHead t1)      = TmHead (f c t1)
+    f c (TmTail t1)      = TmTail (f c t1)
+    f c (TmFix t1)       = TmFix (f c t1)
+    f _ TmTrue           = TmTrue
+    f _ TmFalse          = TmFalse
+    f _ TmZero           = TmZero
+    f _ (TmNil ty)       = TmNil ty
 
 beta :: Term -> Term -> Term
 beta s t = shift (-1) $ subst 0 (shift 1 s) t
 
+
 evalStep :: Term -> Either String Term
+
 evalStep (TmApp (TmLam _ _ t12) v2) | isVal v2 = Right $ beta v2 t12
 evalStep (TmApp t1 t2)
   | isVal t1 = case evalStep t2 of
                   Right t2' -> Right $ TmApp t1 t2'
-                  Left err -> Left err
+                  Left err  -> Left err
   | otherwise = case evalStep t1 of
                   Right t1' -> Right $ TmApp t1' t2
-                  Left err -> Left err
+                  Left err  -> Left err
 evalStep t@(TmLam {}) = Right t
 
-evalStep (TmIf TmTrue t2 _) = Right t2
+evalStep (TmIf TmTrue t2 _)  = Right t2
 evalStep (TmIf TmFalse _ t3) = Right t3
 evalStep (TmIf t1 t2 t3) = case evalStep t1 of
-                              Right t1' -> Right $ TmIf t1' t2 t3
-                              Left err -> Left err
-
+  Right t1' -> Right $ TmIf t1' t2 t3
+  Left err  -> Left err
 evalStep (TmSucc t1) = do
   t1' <- evalStep t1
   Right $ TmSucc t1'
@@ -400,15 +423,20 @@ evalStep (TmCons h t)
   | not (isVal h) = do h' <- evalStep h; Right $ TmCons h' t
   | otherwise = do t' <- evalStep t; Right $ TmCons h t'       
 
-evalStep t
-  | isVal t = Right t
-  | otherwise = Left "No rule applies"
+evalStep (TmFix (TmLam x ty t)) =
+  Right $ beta (TmFix (TmLam x ty t)) t
 
+evalStep (TmFix t1) =
+  TmFix <$> evalStep t1
+
+evalStep t
+  | isVal t   = Right t
+  | otherwise = Left "No rule applies"
 
 eval :: Context -> Term -> Either String Term
 eval ctx t = case typeOf ctx t of
     Left err -> Left $ "Type error: " ++ err
-    Right _ -> case evalStep t of
+    Right _  -> case evalStep t of
         Right t' -> if t' == t then Right t else eval ctx t'
         Left err -> Left $ "Evaluation error: " ++ err
 
@@ -417,10 +445,9 @@ i2c 0 = TmZero
 i2c n = TmSucc (i2c (n - 1))
 
 c2i :: Term -> Int
-c2i TmZero = 0
+c2i TmZero   = 0
 c2i (TmSucc t) = 1 + c2i t
 c2i _ = error "Not a numeric value"
-
 
 s2t_var :: String
 s2t_var = ['0'..'9']
@@ -435,39 +462,75 @@ s2t_idt :: String
 s2t_idt = ['a' .. 'z'] ++ ['0'..'9']
 
 nonIdentifiers :: [String]
-nonIdentifiers = ["true", "false", "zero", "succ", "plus", "if", "eq", "and", "or", "not", "iszero", "mul", "pair", "fst", "snd", "nil", "cons", "head", "tail", "isnil"]
+nonIdentifiers =
+  ["true","false","zero","succ","plus","if","eq","and","or","not","iszero","mul","pair","fst","snd","nil","cons","head","tail","isnil","pred","fix"]     
+
+trim :: String -> String
+trim = reverse . dropWhile (== ' ') . reverse . dropWhile (== ' ')
+
+splitArrow :: String -> Maybe (String, String)
+splitArrow s =
+  let go _ acc [] = Nothing
+      go 0 acc ('-':'>':xs) = Just (reverse acc, xs)
+      go n acc ('(' : xs)   = go (n+1) ('(' : acc) xs
+      go n acc (')' : xs)   = go (n-1) (')' : acc) xs
+      go n acc (x   : xs)   = go n (x:acc) xs
+  in go 0 [] s
 
 stringToType :: String -> Ty
-stringToType "bool" = TyBool
-stringToType "nat" = TyNat
-stringToType _ = TyAny
+stringToType raw =
+  let s = trim raw
+  in case splitArrow s of
+       Just (l, r) -> TyArr (stringToType (trim l)) (stringToType (trim r))
+       Nothing -> case s of
+         "bool" -> TyBool
+         "nat"  -> TyNat
+         _      -> TyAny
 
 typeToString :: Ty -> String
-typeToString TyBool = "bool"
-typeToString TyNat = "nat"
-typeToString TyAny = "any"
+typeToString TyBool       = "bool"
+typeToString TyNat        = "nat"
+typeToString TyAny        = "any"
+typeToString (TyArr a b)  =
+  let left = case a of
+               TyArr _ _ -> "(" ++ typeToString a ++ ")"
+               _         -> typeToString a
+  in left ++ "->" ++ typeToString b
+typeToString (TyPair a b) = "(" ++ typeToString a ++ " * " ++ typeToString b ++ ")"
+typeToString (TyList t)   = "list " ++ typeToString t
 
+t2s :: Term -> String
 t2s (TmVar x) = show x
 t2s (TmLam var ty t) = s2t_lam ++ var ++ ": " ++ typeToString ty ++ "." ++ t2s t
 t2s (TmApp s t@(TmApp _ _)) = t2s s ++ " (" ++ t2s t ++ ")"
-t2s (TmApp s t@(TmLam {})) = t2s s ++ " (" ++ t2s t ++ ")"
-t2s (TmApp s@(TmLam {}) t) = "(" ++ t2s s ++ ") " ++ t2s t
-t2s (TmApp s t) = t2s s ++ " " ++ t2s t
-t2s s@(TmSucc t) = "c" ++ show (c2i s)
-t2s p@(TmPred t) = "c" ++ show (c2i p)
-t2s TmZero = "zero"
-t2s TmTrue = "true"
-t2s TmFalse = "false"
-t2s (TmPlus s t) = "plus " ++ t2s s ++ " " ++ t2s t
-t2s (TmEq s t) = "eq " ++ t2s s ++ " " ++ t2s t
-t2s (TmCons h t) = "[" ++ t2s h ++ listTail t ++ "]"
+t2s (TmApp s t@(TmLam {}))  = t2s s ++ " (" ++ t2s t ++ ")"
+t2s (TmApp s@(TmLam {}) t)  = "(" ++ t2s s ++ ") " ++ t2s t
+t2s (TmApp s t)             = t2s s ++ " " ++ t2s t
+t2s s@(TmSucc t)            = "c" ++ show (c2i s)
+t2s p@(TmPred t)            = "c" ++ show (c2i p)
+t2s TmZero                  = "zero"
+t2s TmTrue                  = "true"
+t2s TmFalse                 = "false"
+t2s (TmPlus s t)            = "plus " ++ t2s s ++ " " ++ t2s t
+t2s (TmEq s t)              = "eq " ++ t2s s ++ " " ++ t2s t
+t2s (TmCons h t)            = "[" ++ t2s h ++ listTail t ++ "]"
   where
-    listTail (TmNil _) = ""
-    listTail (TmCons h' t') = ", " ++ t2s h' ++ listTail t'
-    listTail other = " | " ++ t2s other  -- non-proper list
-t2s (TmPair t1 t2) = "(" ++ t2s t1 ++ ", " ++ t2s t2 ++ ")"
-t2s (TmFst t) = "fst " ++ t2s t
-t2s (TmSnd t) = "snd " ++ t2s t
+    listTail (TmNil _)         = ""
+    listTail (TmCons h' t')    = ", " ++ t2s h' ++ listTail t'
+    listTail other             = " | " ++ t2s other
+t2s (TmPair t1 t2)          = "(" ++ t2s t1 ++ ", " ++ t2s t2 ++ ")"
+t2s (TmFst t)               = "fst " ++ t2s t
+t2s (TmSnd t)               = "snd " ++ t2s t
+t2s (TmFix t)               = "fix " ++ t2s t
+t2s (TmMul s t)             = "mul " ++ t2s s ++ " " ++ t2s t
+t2s (TmAnd s t)             = "and " ++ t2s s ++ " " ++ t2s t
+t2s (TmOr  s t)             = "or "  ++ t2s s ++ " " ++ t2s t
+t2s (TmNot t)               = "not " ++ t2s t
+t2s (TmIsZero t)            = "iszero " ++ t2s t
+t2s (TmHead t)              = "head " ++ t2s t
+t2s (TmTail t)              = "tail " ++ t2s t
+t2s (TmIsNil t)             = "isnil " ++ t2s t
+t2s (TmNil _)               = "nil"
 
 desugarListTokens :: [(String, String)] -> ([(String, String)], [(String, String)])
 desugarListTokens (("[", "sym") : rest) = go rest []
@@ -475,32 +538,23 @@ desugarListTokens (("[", "sym") : rest) = go rest []
     go (("]", "sym") : tail) acc = (build acc, tail)
     go ((tok, typ) : ("," , "sym") : xs) acc = go xs (acc ++ [(tok, typ)])
     go ((tok, typ) : xs) acc = go xs (acc ++ [(tok, typ)])
-    go [] _ = ([], [])  -- malformed list
-
-    build [] = [("nil", "nil")]  -- fallback
-    build ts =
-      let first = case ts of
-            (x:_) -> x
-            [] -> ("nil", "nil")
-      in foldr (\x acc -> [("cons", "cons"), x] ++ acc) [("nil", "nil")] ts
+    go [] _ = ([], [])
+    build [] = [("nil", "nil")]
+    build ts = foldr (\x acc -> [("cons", "cons"), x] ++ acc) [("nil", "nil")] ts
 desugarListTokens s = ([], s)
 
-
-
 s2t_static_mem :: [(String, Term)]
-s2t_static_mem = 
-       [] ++ [('c' : show i, i2c i) | i <- [0 .. 1000]]
+s2t_static_mem = [] ++ [('c' : show i, i2c i) | i <- [0 .. 1000]]
 
 s2t_set_mem :: [(String, Term)] -> String -> Term -> [(String, Term)]
-s2t_set_mem (p@(a, b) : m) s t = 
+s2t_set_mem (p@(a, b) : m) s t =
   if a == s then (a, t) : m else p : s2t_set_mem m s t
-s2t_set_mem [] s t = [(s, t)] 
+s2t_set_mem [] s t = [(s, t)]
 
 s2t_get_mem :: [(String, Term)] -> String -> [Term]
-s2t_get_mem ((a, b) : m) s = 
+s2t_get_mem ((a, b) : m) s =
   if a == s then [b] else s2t_get_mem m s
 s2t_get_mem [] _ = []
-
 
 s2t_read_var :: String -> (String, String)
 s2t_read_var s = f ("", s)
@@ -520,12 +574,10 @@ extractVarAndType s = (a, dropWhile (== ' ') $ drop 1 b)
   where (a, b) = span (/= ':') c
         c = init (drop 1 s)
 
-
 s2t_read_idt :: String -> (String, String)
 s2t_read_idt s = f ("", s)
   where f (t, s@(c : cs)) = if c `elem` s2t_idt then f (c : t, cs) else (reverse t, s)
         f (t, "") = (reverse t, "")
-
 
 s2t_tokenize :: String -> [(String, String)] -> [(String, String)]
 s2t_tokenize s@(c : cs) t
@@ -536,15 +588,16 @@ s2t_tokenize s@(c : cs) t
   | c `elem` s2t_idt =
       let (i, is) = s2t_read_idt s
       in if i `elem` nonIdentifiers
-         then s2t_tokenize is ((i, i) : t)  -- label the term with its own name
+         then s2t_tokenize is ((i, i) : t)
          else s2t_tokenize is ((i, "idt") : t)
   | otherwise = []
   where (v, vs) = s2t_read_var s
         (l, ls) = s2t_read_lam s
 s2t_tokenize "" t = reverse t
 
+
 s2t_interpret_var :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
-s2t_interpret_var m ((n, "var") : s) = 
+s2t_interpret_var m ((n, "var") : s) =
   if all (`elem` s2t_var) n then ([TmVar (read n :: Int)], s) else ([], [])
 
 s2t_interpret_lst :: [(String, Term)] -> [(String, String)] -> [Term] -> ([Term], [(String, String)])
@@ -572,22 +625,21 @@ s2t_interpret_idt :: [(String, Term)] -> [(String, String)] -> ([Term], [(String
 s2t_interpret_idt m ((i, "idt") : s) = if t == [] then ([], []) else (t, s)
   where t = s2t_get_mem m i
 
-s2t_interpret_true :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
+
 s2t_interpret_true m (("true", "true") : s) = ([TmTrue], s)
-
-s2t_interpret_false :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_false m (("false", "false") : s) = ([TmFalse], s)
-
-s2t_interpret_zero :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_zero m (("zero", "zero") : s) = ([TmZero], s)
 
-s2t_interpret_succ :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_succ m (("succ", "succ") : s) =
   case s2t_interpret_term m s of
     ([t], s') -> ([TmSucc t], s')
     _ -> ([], [])
 
-s2t_interpret_plus :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
+s2t_interpret_pred m (("pred", "pred") : s) =
+  case s2t_interpret_term m s of
+    ([t], s') -> ([TmPred t], s')
+    _ -> ([], [])
+
 s2t_interpret_plus m (("plus", "plus") : s) =
   case s2t_interpret_term m s of
     ([t1], s1) ->
@@ -596,7 +648,6 @@ s2t_interpret_plus m (("plus", "plus") : s) =
         _ -> ([], [])
     _ -> ([], [])
 
-s2t_interpret_mul :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_mul m (("mul", "mul") : s) =
   case s2t_interpret_term m s of
     ([t1], s1) ->
@@ -605,7 +656,6 @@ s2t_interpret_mul m (("mul", "mul") : s) =
         _ -> ([], [])
     _ -> ([], [])
 
-s2t_interpret_eq :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_eq m (("eq", "eq") : s) =
   case s2t_interpret_term m s of
     ([t1], s1) ->
@@ -614,7 +664,6 @@ s2t_interpret_eq m (("eq", "eq") : s) =
         _ -> ([], [])
     _ -> ([], [])
 
-s2t_interpret_if :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_if m (("if", "if") : s) =
   case s2t_interpret_term m s of
     ([t1], s1) ->
@@ -626,7 +675,6 @@ s2t_interpret_if m (("if", "if") : s) =
         _ -> ([], [])
     _ -> ([], [])
 
-s2t_interpret_and :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_and m (("and", "and") : s) =
   case s2t_interpret_term m s of
     ([t1], s1) ->
@@ -635,7 +683,6 @@ s2t_interpret_and m (("and", "and") : s) =
         _ -> ([], [])
     _ -> ([], [])
 
-s2t_interpret_or :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_or m (("or", "or") : s) =
   case s2t_interpret_term m s of
     ([t1], s1) ->
@@ -644,19 +691,16 @@ s2t_interpret_or m (("or", "or") : s) =
         _ -> ([], [])
     _ -> ([], [])
 
-s2t_interpret_not :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_not m (("not", "not") : s) =
   case s2t_interpret_term m s of
     ([t], s') -> ([TmNot t], s')
     _ -> ([], [])
 
-s2t_interpret_iszero :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_iszero m (("iszero", "iszero") : s) =
   case s2t_interpret_term m s of
     ([t], s') -> ([TmIsZero t], s')
     _ -> ([], [])
 
-s2t_interpret_pair :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_pair m (("pair", _) : s) =
   case s2t_interpret_term m s of
     ([t1], s1) -> case s2t_interpret_term m s1 of
@@ -664,22 +708,18 @@ s2t_interpret_pair m (("pair", _) : s) =
       _ -> ([], [])
     _ -> ([], [])
 
-s2t_interpret_fst :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_fst m (("fst", _) : s) =
   case s2t_interpret_term m s of
     ([t], s') -> ([TmFst t], s')
     _ -> ([], [])
 
-s2t_interpret_snd :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_snd m (("snd", _) : s) =
   case s2t_interpret_term m s of
     ([t], s') -> ([TmSnd t], s')
     _ -> ([], [])
 
-s2t_interpret_nil :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_nil m (("nil", _) : s) = ([TmNil TyAny], s)
 
-s2t_interpret_cons :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_cons m (("cons", _) : s) =
   case s2t_interpret_term m s of
     ([h], s1) ->
@@ -692,13 +732,11 @@ s2t_interpret_cons m (("cons", _) : s) =
         _ -> ([], [])
     _ -> ([], [])
 
-s2t_interpret_head :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_head m (("head", _) : s) =
   case s2t_interpret_term m s of
     ([t], s') -> ([TmHead t], s')
     _ -> ([], [])
 
-s2t_interpret_tail :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
 s2t_interpret_tail m (("tail", _) : s) =
   case s2t_interpret_term m s of
     ([t], s') -> ([TmTail t], s')
@@ -711,9 +749,13 @@ s2t_interpret_isnil m (("isnil", _) : s) =
     _ -> ([], [])
 
 
+s2t_interpret_fix :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
+s2t_interpret_fix m (("fix","fix") : s) =
+  case s2t_interpret_term m s of
+    ([t], s') -> ([TmFix t], s')
+    _         -> ([], [])
 
 s2t_interpret_term :: [(String, Term)] -> [(String, String)] -> ([Term], [(String, String)])
-
 s2t_interpret_term m s@(("[" , "sym") : _) =
   let (desugared, _) = desugarListTokens s
       wrapped = ("(", "sym") : desugared ++ [(")", "sym")]
@@ -721,30 +763,32 @@ s2t_interpret_term m s@(("[" , "sym") : _) =
 
 s2t_interpret_term m s@((a, b) : _)
   | a == "(" && b == "sym" = s2t_interpret_grp m s
-  | b == "var" = s2t_interpret_var m s
-  | b == "lam" = s2t_interpret_lam m s
-  | b == "idt" = s2t_interpret_idt m s
-  | b == "true" = s2t_interpret_true m s
-  | b == "false" = s2t_interpret_false m s
-  | b == "zero" = s2t_interpret_zero m s
-  | b == "succ" = s2t_interpret_succ m s
-  | b == "plus" = s2t_interpret_plus m s
-  | b == "mul" = s2t_interpret_mul m s
-  | b == "eq" = s2t_interpret_eq m s
-  | b == "if" = s2t_interpret_if m s
-  | b == "and" = s2t_interpret_and m s
-  | b == "or" = s2t_interpret_or m s
-  | b == "not" = s2t_interpret_not m s
-  | b == "iszero" = s2t_interpret_iszero m s
-  | b == "pair" = s2t_interpret_pair m s
-  | b == "fst"  = s2t_interpret_fst m s
-  | b == "snd"  = s2t_interpret_snd m s
-  | a == "nil" = s2t_interpret_nil m s
-  | a == "cons" = s2t_interpret_cons m s
-  | a == "head" = s2t_interpret_head m s
-  | a == "tail" = s2t_interpret_tail m s
-  | a == "isnil" = s2t_interpret_isnil m s
-  | otherwise = ([], [])
+  | b == "var"     = s2t_interpret_var     m s
+  | b == "lam"     = s2t_interpret_lam     m s
+  | b == "idt"     = s2t_interpret_idt     m s
+  | b == "true"    = s2t_interpret_true    m s
+  | b == "false"   = s2t_interpret_false   m s
+  | b == "zero"    = s2t_interpret_zero    m s
+  | b == "succ"    = s2t_interpret_succ    m s
+  | b == "pred"    = s2t_interpret_pred    m s
+  | b == "plus"    = s2t_interpret_plus    m s
+  | b == "mul"     = s2t_interpret_mul     m s
+  | b == "eq"      = s2t_interpret_eq      m s
+  | b == "if"      = s2t_interpret_if      m s
+  | b == "and"     = s2t_interpret_and     m s
+  | b == "or"      = s2t_interpret_or      m s
+  | b == "not"     = s2t_interpret_not     m s
+  | b == "iszero"  = s2t_interpret_iszero  m s
+  | b == "pair"    = s2t_interpret_pair    m s
+  | b == "fst"     = s2t_interpret_fst     m s
+  | b == "snd"     = s2t_interpret_snd     m s
+  | a == "fix"     = s2t_interpret_fix     m s
+  | a == "nil"     = s2t_interpret_nil     m s
+  | a == "cons"    = s2t_interpret_cons    m s
+  | a == "head"    = s2t_interpret_head    m s
+  | a == "tail"    = s2t_interpret_tail    m s
+  | a == "isnil"   = s2t_interpret_isnil   m s
+  | otherwise      = ([], [])
 
 s2t_interpret_assign :: [(String, Term)] -> [(String, String)] -> [(String, Term)]
 s2t_interpret_assign m ((a, "idt") : ("=", "sym") : t) =
@@ -758,6 +802,7 @@ s2t_interpret_assign m ((a, "idt") : ("=", "sym") : t) =
         ("(", "sym") : t ++ [(")", "sym")]
 
     (l, s) = s2t_interpret_term m t'
+
 
 s2t_interpreter :: [(String, Term)] -> (Term -> String) -> IO ()
 s2t_interpreter m f =
@@ -792,7 +837,7 @@ s2t_interpreter m f =
        putStr $ "Unrecognized command.\n"
        s2t_interpreter m f
      else do
-       let s = s2t_tokenize (rebuild [] [] l) []
+       let s = s2t_tokenize (rebuild [] [] (' ' : l)) []
        if s == [] then do
          putStr "Invalid input.\n"
          s2t_interpreter m f
@@ -810,20 +855,18 @@ s2t_interpreter m f =
            putStr "Invalid input.\n"
          else do
             let evalResult = eval [] (head t)
-
             case evalResult of
-                Left err -> do
-                    putStrLn err
+                Left err -> putStrLn err
                 Right term -> do
                     let p = f term
-                    if p /= "" then do
-                        putStrLn p
+                    if p /= "" then putStrLn p
                     else do
                         let termString = t2s term
                         putStrLn termString
          s2t_interpreter m f
-                   
+
 main :: IO ()
-main = do putStr "Haskell interpreter of the simply typed lambda calculus.\n"
-          putStr "Input -h for help, exit to terminate the program.\n"
-          s2t_interpreter s2t_static_mem t2s
+main = do
+  putStr "Haskell interpreter of the simply typed lambda calculus.\n"
+  putStr "Input -h for help, exit to terminate the program.\n"
+  s2t_interpreter s2t_static_mem t2s
