@@ -1,12 +1,17 @@
 
 #Lambda functions
 f = (\x: bool. eq true x)
+
 #Lists
 a = [c1,c2,c3]
 head a
 tail a
 isnil a
+
 #Pairs
 b = pair c1 true
 fst b
 snd b
+
+#Recursive functions
+fact = fix \f: nat->nat. \n: nat. if iszero n c1 (mul n (f (pred n)))
